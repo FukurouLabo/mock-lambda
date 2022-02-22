@@ -20,10 +20,11 @@ type Payload struct {
 }
 
 type MockLambda struct {
-	api     func(h func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)) Response
-	token   func(h func(request events.APIGatewayCustomAuthorizerRequest) (events.APIGatewayCustomAuthorizerResponse, error)) Response
-	request func(h func(request events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error)) Response
-	sqs     func(h func(ctx context.Context, request events.SQSEvent) error) Response
+	api      func(h func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)) Response
+	token    func(h func(request events.APIGatewayCustomAuthorizerRequest) (events.APIGatewayCustomAuthorizerResponse, error)) Response
+	request  func(h func(request events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error)) Response
+	sqs      func(h func(ctx context.Context, request events.SQSEvent) error) Response
+	resolver func(h func(payload map[string]interface{}) ([]interface{}, error)) Response
 }
 
 func (ml *MockLambda) start(h interface{}) Response {
@@ -45,6 +46,8 @@ func (ml *MockLambda) start(h interface{}) Response {
 		response = ml.request(h.(func(request events.APIGatewayCustomAuthorizerRequestTypeRequest) (events.APIGatewayCustomAuthorizerResponse, error)))
 	} else if inputCount == 2 && inputTypes[0] == "context.Context" && inputTypes[1] == "events.SQSEvent" {
 		response = ml.sqs(h.(func(ctx context.Context, request events.SQSEvent) error))
+	} else if inputTypes[0] == "map[string]interface {}" {
+		response = ml.resolver(h.(func(payload map[string]interface{}) ([]interface{}, error)))
 	} else {
 		response.Payload.Error = "no handler found for method signature func(" + strings.Join(inputTypes, ", ") + ")"
 	}
@@ -53,7 +56,7 @@ func (ml *MockLambda) start(h interface{}) Response {
 }
 
 func Start(h interface{}) {
-	ml := MockLambda{api: api, token: token, request: request, sqs: sqs}
+	ml := MockLambda{api: api, token: token, request: request, sqs: sqs, resolver: resolver}
 	response := ml.start(h)
 
 	out, err := json.Marshal(response)
