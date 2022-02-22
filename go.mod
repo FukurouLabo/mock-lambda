@@ -1,5 +1,5 @@
-module github.com/icarus-sullivan/mock-lambda
+module github.com/FukurouLabo/mock-lambda
 
-go 1.17
+go 1.18
 
-require github.com/aws/aws-lambda-go v1.28.0 // indirect
+require github.com/aws/aws-lambda-go v1.28.0
